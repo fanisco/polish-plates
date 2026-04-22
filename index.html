@@ -227,23 +227,9 @@ h1 {
   color: #555;
 }
 
-@media (max-width: 560px) {
-  .plate {
-    width: 100%;
-    max-width: 520px;
-    height: auto;
-    aspect-ratio: 520 / 110;
-  }
-  .plate-prefix, .plate-serial {
-    font-size: 12vw;
-  }
-  .plate-main {
-    height: auto;
-  }
-  .eu-band {
-    width: 9.6vw;
-    min-width: 9.6vw;
-  }
+/* Ensure page never squeezes below plate width */
+html {
+  min-width: 560px;
 }
 </style>
 </head>

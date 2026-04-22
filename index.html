@@ -153,39 +153,38 @@ h1 {
   white-space: nowrap;
 }
 
-/* ── Coat of arms + sticker column ── */
+/* ── Coat of arms column: national eagle on top, regional COA below ── */
 .plate-coa-wrapper {
   display: flex;
   flex-direction: column;
   align-items: center;
-  margin: 0 6px;
+  margin: 0 3px;
   flex-shrink: 0;
   align-self: center;
+  gap: 0;
+}
+
+.plate-coa-national {
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.plate-coa-national img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
 }
 
 .plate-coa {
-  width: 40px;
-  height: 48px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.plate-sticker {
   width: 38px;
-  height: 16px;
-  border-radius: 2px;
-  border: 1px solid #777;
-  margin-top: 2px;
-  font-size: 5px;
-  font-family: Arial, sans-serif;
-  color: #fff;
+  height: 42px;
   display: flex;
   align-items: center;
   justify-content: center;
-  letter-spacing: 0;
-  background: linear-gradient(180deg, #339933 50%, #cc3333 50%);
-  box-shadow: 0 0 1px rgba(0,0,0,0.3);
 }
 
 .plate-coa img,
@@ -267,8 +266,8 @@ h1 {
       <div class="plate-main">
         <span class="plate-prefix" id="platePrefix">WA</span>
         <div class="plate-coa-wrapper">
+          <div class="plate-coa-national"><img src="coa/polska.svg" alt="Godło RP"></div>
           <div class="plate-coa" id="plateCoa"></div>
-          <div class="plate-sticker">WALIDACJA</div>
         </div>
         <span class="plate-serial" id="plateSerial">6642E</span>
       </div>

@@ -1,0 +1,538 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Tablice Rejestracyjne PL — Generator</title>
+<style>
+@font-face {
+  font-family: 'Arklatrs';
+  src: url('fonts/arklatrs.ttf') format('truetype');
+}
+
+:root {
+  --plate-font: 'Arklatrs', 'Arial Black', sans-serif;
+}
+
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  background: #1a1a2e;
+  color: #e0e0e0;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 40px 16px;
+}
+
+h1 {
+  font-size: 1.4rem;
+  font-weight: 600;
+  margin-bottom: 8px;
+  color: #fff;
+}
+
+.subtitle {
+  font-size: 0.85rem;
+  color: #888;
+  margin-bottom: 32px;
+}
+
+.controls {
+  display: flex;
+  justify-content: center;
+  margin-bottom: 32px;
+}
+
+.controls input {
+  padding: 12px 20px;
+  font-size: 1.2rem;
+  border: 2px solid #333;
+  border-radius: 8px;
+  background: #16213e;
+  color: #fff;
+  outline: none;
+  transition: border-color 0.2s;
+  width: 240px;
+  text-align: center;
+  text-transform: uppercase;
+  letter-spacing: 3px;
+  font-family: var(--plate-font);
+}
+
+.controls input:focus {
+  border-color: #3b82f6;
+}
+
+.plate-wrapper {
+  margin-bottom: 24px;
+}
+
+/* === PLATE ===
+   Real EU plate: 520×110mm, euroband 50mm, chars 75mm tall,
+   corner radius 5mm, border ~1mm, group spacing 33mm.
+   We render at 1px = 1mm scale. */
+
+.plate {
+  display: flex;
+  width: 520px;
+  height: 110px;
+  border-radius: 5px;
+  overflow: hidden;
+  border: 1px solid #222;
+  background: linear-gradient(175deg, #ededed 0%, #d8d8d8 40%, #c8c8c8 100%);
+  box-shadow: 0 4px 24px rgba(0,0,0,0.4),
+              inset 0 1px 0 rgba(255,255,255,0.6),
+              inset 0 -1px 0 rgba(0,0,0,0.08);
+  position: relative;
+}
+
+/* ── EU blue band: 50mm wide, full height ── */
+.eu-band {
+  width: 50px;
+  min-width: 50px;
+  background: linear-gradient(180deg, #003da5 0%, #002d80 100%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  padding: 6px 0 4px 0;
+  border-right: 1px solid #555;
+  border-radius: 4px 0 0 4px;
+}
+
+.eu-band svg {
+  width: 42px;
+  height: 42px;
+  flex-shrink: 0;
+}
+
+.eu-country {
+  color: #fff;
+  font-size: 20px;
+  font-weight: 700;
+  letter-spacing: 1px;
+  font-family: Arial, Helvetica, sans-serif;
+  text-shadow: 0 1px 2px rgba(0,0,0,0.3);
+}
+
+/* ── Main plate content area (right of euroband) ── */
+.plate-content {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  padding: 2px 8px 0 8px;
+  min-width: 0;
+}
+
+.plate-main {
+  display: flex;
+  align-items: center;
+  width: 100%;
+  justify-content: center;
+  height: 82px;
+}
+
+/* ── Characters: 75mm tall on real plate.
+   Font cap-height ≈ 70% of font-size, so font-size ~107px
+   would give 75px caps. But we need room for region name.
+   Use 80px which gives ~56px caps + region text fits. ── */
+.plate-prefix,
+.plate-serial {
+  font-family: var(--plate-font);
+  font-size: 76px;
+  font-weight: 400;
+  color: #111;
+  line-height: 0.9;
+  letter-spacing: 3px;
+  white-space: nowrap;
+}
+
+/* ── Coat of arms + sticker column ── */
+.plate-coa-wrapper {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  margin: 0 6px;
+  flex-shrink: 0;
+  align-self: center;
+}
+
+.plate-coa {
+  width: 40px;
+  height: 48px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.plate-sticker {
+  width: 38px;
+  height: 16px;
+  border-radius: 2px;
+  border: 1px solid #777;
+  margin-top: 2px;
+  font-size: 5px;
+  font-family: Arial, sans-serif;
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  letter-spacing: 0;
+  background: linear-gradient(180deg, #339933 50%, #cc3333 50%);
+  box-shadow: 0 0 1px rgba(0,0,0,0.3);
+}
+
+.plate-coa img,
+.plate-coa svg {
+  max-width: 100%;
+  max-height: 100%;
+  object-fit: contain;
+}
+
+/* ── Region name below characters ── */
+.plate-region {
+  font-size: 10px;
+  color: #333;
+  font-family: Arial, Helvetica, sans-serif;
+  margin-top: 0;
+  letter-spacing: 0.5px;
+  font-weight: 500;
+  line-height: 1;
+}
+
+.plate.invalid {
+  opacity: 0.5;
+}
+
+.region-info {
+  font-size: 0.9rem;
+  color: #aaa;
+  margin-top: 12px;
+  text-align: center;
+}
+
+.region-info strong {
+  color: #ddd;
+}
+
+.footer {
+  margin-top: auto;
+  padding-top: 40px;
+  font-size: 0.75rem;
+  color: #555;
+}
+
+@media (max-width: 560px) {
+  .plate {
+    width: 100%;
+    max-width: 520px;
+    height: auto;
+    aspect-ratio: 520 / 110;
+  }
+  .plate-prefix, .plate-serial {
+    font-size: 12vw;
+  }
+  .plate-main {
+    height: auto;
+  }
+  .eu-band {
+    width: 9.6vw;
+    min-width: 9.6vw;
+  }
+}
+</style>
+</head>
+<body>
+
+<h1>Tablice Rejestracyjne PL</h1>
+<p class="subtitle">Propozycja tablic z herbami regionalnymi</p>
+
+<div class="controls">
+  <input type="text" id="plateInput" placeholder="np. WA 6642E" maxlength="9" autocomplete="off" spellcheck="false">
+</div>
+
+<div class="plate-wrapper">
+  <div class="plate" id="platePreview">
+    <div class="eu-band">
+      <svg viewBox="0 0 40 40" xmlns="http://www.w3.org/2000/svg" id="euStars"></svg>
+      <span class="eu-country">PL</span>
+    </div>
+    <div class="plate-content">
+      <div class="plate-main">
+        <span class="plate-prefix" id="platePrefix">WA</span>
+        <div class="plate-coa-wrapper">
+          <div class="plate-coa" id="plateCoa"></div>
+          <div class="plate-sticker">WALIDACJA</div>
+        </div>
+        <span class="plate-serial" id="plateSerial">6642E</span>
+      </div>
+      <div class="plate-region" id="plateRegion">Miasto Stołeczne Warszawa</div>
+    </div>
+  </div>
+</div>
+
+<div class="region-info" id="regionInfo"></div>
+
+<div class="footer">Font: Arklatrs (zamozniewicz) | Herby: Wikimedia Commons</div>
+
+<script>
+// ── Region Data ──
+
+const VOIVODESHIPS = {
+  B: { name: 'Podlaskie', capital: 'Białystok', coaFile: 'coa/woj_podlaskie.svg' },
+  C: { name: 'Kujawsko-Pomorskie', capital: 'Bydgoszcz', coaFile: 'coa/woj_kujawsko-pomorskie.svg' },
+  D: { name: 'Dolnośląskie', capital: 'Wrocław', coaFile: 'coa/woj_dolnoslaskie.svg' },
+  E: { name: 'Łódzkie', capital: 'Łódź', coaFile: 'coa/woj_lodzkie.svg' },
+  F: { name: 'Lubuskie', capital: 'Gorzów Wlkp.', coaFile: 'coa/woj_lubuskie.svg' },
+  G: { name: 'Pomorskie', capital: 'Gdańsk', coaFile: 'coa/woj_pomorskie.svg' },
+  K: { name: 'Małopolskie', capital: 'Kraków', coaFile: 'coa/woj_malopolskie.svg' },
+  L: { name: 'Lubelskie', capital: 'Lublin', coaFile: 'coa/woj_lubelskie.svg' },
+  N: { name: 'Warmińsko-Mazurskie', capital: 'Olsztyn', coaFile: 'coa/woj_warminsko-mazurskie.svg' },
+  O: { name: 'Opolskie', capital: 'Opole', coaFile: 'coa/woj_opolskie.svg' },
+  P: { name: 'Wielkopolskie', capital: 'Poznań', coaFile: 'coa/woj_wielkopolskie.svg' },
+  R: { name: 'Podkarpackie', capital: 'Rzeszów', coaFile: 'coa/woj_podkarpackie.svg' },
+  S: { name: 'Śląskie', capital: 'Katowice', coaFile: 'coa/woj_slaskie.svg' },
+  T: { name: 'Świętokrzyskie', capital: 'Kielce', coaFile: 'coa/woj_swietokrzyskie.svg' },
+  W: { name: 'Mazowieckie', capital: 'Warszawa', coaFile: 'coa/woj_mazowieckie.svg' },
+  Z: { name: 'Zachodniopomorskie', capital: 'Szczecin', coaFile: 'coa/woj_zachodniopomorskie.svg' },
+};
+
+const CITIES = {
+  // Mazowieckie — Warsaw districts all share Warsaw COA
+  WA: { name: 'Miasto Stołeczne Warszawa', voivodeship: 'Mazowieckie', coaFile: 'coa/warszawa.svg' },
+  WB: { name: 'Warszawa — Bemowo', voivodeship: 'Mazowieckie', coaFile: 'coa/warszawa.svg' },
+  WD: { name: 'Warszawa — Wola', voivodeship: 'Mazowieckie', coaFile: 'coa/warszawa.svg' },
+  WE: { name: 'Warszawa — Mokotów', voivodeship: 'Mazowieckie', coaFile: 'coa/warszawa.svg' },
+  WF: { name: 'Warszawa — Ochota', voivodeship: 'Mazowieckie', coaFile: 'coa/warszawa.svg' },
+  WH: { name: 'Warszawa — Praga Płd.', voivodeship: 'Mazowieckie', coaFile: 'coa/warszawa.svg' },
+  WI: { name: 'Warszawa — Śródmieście', voivodeship: 'Mazowieckie', coaFile: 'coa/warszawa.svg' },
+  WJ: { name: 'Warszawa — Targówek', voivodeship: 'Mazowieckie', coaFile: 'coa/warszawa.svg' },
+  WK: { name: 'Warszawa — Ursynów', voivodeship: 'Mazowieckie', coaFile: 'coa/warszawa.svg' },
+  WN: { name: 'Warszawa — Bielany', voivodeship: 'Mazowieckie', coaFile: 'coa/warszawa.svg' },
+  WT: { name: 'Warszawa — Żoliborz', voivodeship: 'Mazowieckie', coaFile: 'coa/warszawa.svg' },
+  WU: { name: 'Warszawa — Praga Płn.', voivodeship: 'Mazowieckie', coaFile: 'coa/warszawa.svg' },
+  WX: { name: 'Warszawa — Białołęka', voivodeship: 'Mazowieckie', coaFile: 'coa/warszawa.svg' },
+  WY: { name: 'Warszawa — Wilanów', voivodeship: 'Mazowieckie', coaFile: 'coa/warszawa.svg' },
+  // Małopolskie
+  KR: { name: 'Kraków', voivodeship: 'Małopolskie', coaFile: 'coa/krakow.svg' },
+  KK: { name: 'Kraków', voivodeship: 'Małopolskie', coaFile: 'coa/krakow.svg' },
+  // Dolnośląskie
+  DW: { name: 'Wrocław', voivodeship: 'Dolnośląskie', coaFile: 'coa/wroclaw.svg' },
+  DL: { name: 'Legnica', voivodeship: 'Dolnośląskie', coaFile: 'coa/legnica.svg' },
+  // Pomorskie
+  GD: { name: 'Gdańsk', voivodeship: 'Pomorskie', coaFile: 'coa/gdansk.svg' },
+  GA: { name: 'Gdynia', voivodeship: 'Pomorskie', coaFile: 'coa/gdynia.svg' },
+  // Wielkopolskie
+  PO: { name: 'Poznań', voivodeship: 'Wielkopolskie', coaFile: 'coa/poznan.svg' },
+  PY: { name: 'Poznań', voivodeship: 'Wielkopolskie', coaFile: 'coa/poznan.svg' },
+  // Łódzkie
+  EL: { name: 'Łódź', voivodeship: 'Łódzkie', coaFile: 'coa/lodz.svg' },
+  // Lubelskie
+  LU: { name: 'Lublin', voivodeship: 'Lubelskie', coaFile: 'coa/lublin.svg' },
+  // Śląskie
+  SK: { name: 'Katowice', voivodeship: 'Śląskie', coaFile: 'coa/katowice.svg' },
+  SB: { name: 'Bielsko-Biała', voivodeship: 'Śląskie', coaFile: 'coa/bielsko-biala.svg' },
+  SC: { name: 'Częstochowa', voivodeship: 'Śląskie', coaFile: 'coa/czestochowa.svg' },
+  SG: { name: 'Gliwice', voivodeship: 'Śląskie', coaFile: 'coa/gliwice.svg' },
+  SH: { name: 'Chorzów', voivodeship: 'Śląskie', coaFile: 'coa/woj_slaskie.svg' },
+  SO: { name: 'Sosnowiec', voivodeship: 'Śląskie', coaFile: 'coa/sosnowiec.svg' },
+  SR: { name: 'Ruda Śląska', voivodeship: 'Śląskie', coaFile: 'coa/woj_slaskie.svg' },
+  ST: { name: 'Tychy', voivodeship: 'Śląskie', coaFile: 'coa/woj_slaskie.svg' },
+  SZ: { name: 'Zabrze', voivodeship: 'Śląskie', coaFile: 'coa/woj_slaskie.svg' },
+  // Zachodniopomorskie
+  ZS: { name: 'Szczecin', voivodeship: 'Zachodniopomorskie', coaFile: 'coa/szczecin.svg' },
+  // Podlaskie
+  BI: { name: 'Białystok', voivodeship: 'Podlaskie', coaFile: 'coa/bialystok.svg' },
+  // Kujawsko-Pomorskie
+  CB: { name: 'Bydgoszcz', voivodeship: 'Kujawsko-Pomorskie', coaFile: 'coa/bydgoszcz.svg' },
+  CT: { name: 'Toruń', voivodeship: 'Kujawsko-Pomorskie', coaFile: 'coa/torun.svg' },
+  // Lubuskie
+  FG: { name: 'Gorzów Wlkp.', voivodeship: 'Lubuskie', coaFile: 'coa/gorzow-wielkopolski.svg' },
+  FZ: { name: 'Zielona Góra', voivodeship: 'Lubuskie', coaFile: 'coa/zielona-gora.svg' },
+  // Warmińsko-Mazurskie
+  NO: { name: 'Olsztyn', voivodeship: 'Warmińsko-Mazurskie', coaFile: 'coa/olsztyn.svg' },
+  NE: { name: 'Elbląg', voivodeship: 'Warmińsko-Mazurskie', coaFile: 'coa/elblag.svg' },
+  // Opolskie
+  OP: { name: 'Opole', voivodeship: 'Opolskie', coaFile: 'coa/opole.svg' },
+  // Podkarpackie
+  RZ: { name: 'Rzeszów', voivodeship: 'Podkarpackie', coaFile: 'coa/rzeszow.svg' },
+  RK: { name: 'Krosno', voivodeship: 'Podkarpackie', coaFile: 'coa/krosno.svg' },
+  // Świętokrzyskie
+  TK: { name: 'Kielce', voivodeship: 'Świętokrzyskie', coaFile: 'coa/kielce.svg' },
+};
+
+const POWIATS = {
+  WRA: { name: 'Radom', voivodeship: 'Mazowieckie', coaFile: 'coa/radom.svg' },
+  WPI: { name: 'Piaseczno', voivodeship: 'Mazowieckie', coaFile: 'coa/piaseczno.svg' },
+  WPR: { name: 'Pruszków', voivodeship: 'Mazowieckie', coaFile: 'coa/pruszkow.svg' },
+  LTM: { name: 'Tomaszów Lubelski', voivodeship: 'Lubelskie', coaFile: 'coa/tomaszow-lubelski.svg' },
+  DJE: { name: 'Jelenia Góra', voivodeship: 'Dolnośląskie', coaFile: 'coa/jelenia-gora.svg' },
+  KNS: { name: 'Nowy Sącz', voivodeship: 'Małopolskie', coaFile: 'coa/nowy-sacz.svg' },
+  KNT: { name: 'Nowy Targ', voivodeship: 'Małopolskie', coaFile: 'coa/nowy-targ.svg' },
+  GPU: { name: 'Puck', voivodeship: 'Pomorskie', coaFile: 'coa/puck.svg' },
+  PKA: { name: 'Kalisz', voivodeship: 'Wielkopolskie', coaFile: 'coa/kalisz.svg' },
+  SCI: { name: 'Cieszyn', voivodeship: 'Śląskie', coaFile: 'coa/cieszyn.svg' },
+  RDE: { name: 'Dębica', voivodeship: 'Podkarpackie', coaFile: 'coa/debica.svg' },
+};
+
+// ── Parsing ──
+
+function parsePlate(input) {
+  const upper = input.toUpperCase().trim();
+  if (!upper) return null;
+
+  // Polish plates: 1-3 letter prefix + 4-5 alphanumeric serial = 5-8 total
+  // If user typed a space, use it as delimiter
+  const spaceMatch = upper.match(/^([A-Z]{1,3})\s+([A-Z0-9]{1,5})$/);
+  if (spaceMatch) {
+    const total = spaceMatch[1].length + spaceMatch[2].length;
+    if (total < 5 || total > 8) return null;
+    return { prefix: spaceMatch[1], serial: spaceMatch[2] };
+  }
+
+  // No space: try to auto-detect prefix using region database
+  const clean = upper.replace(/[\s\-]/g, '');
+  if (clean.length < 5 || clean.length > 8) return null;
+
+  // Try 3-letter prefix first, then 2, then 1
+  for (let len = 3; len >= 1; len--) {
+    if (clean.length <= len) continue;
+    const prefix = clean.substring(0, len);
+    const serial = clean.substring(len);
+    if (serial.length < 4 || serial.length > 5) continue;
+    const hasRegion = (len === 3 && POWIATS[prefix]) ||
+                      (len === 2 && CITIES[prefix]) ||
+                      (len === 1 && VOIVODESHIPS[prefix]);
+    if (hasRegion) return { prefix, serial };
+  }
+
+  // Fallback: first letter as voivodeship
+  if (VOIVODESHIPS[clean[0]]) {
+    const serial = clean.substring(1);
+    if (serial.length >= 4 && serial.length <= 5) {
+      return { prefix: clean[0], serial };
+    }
+  }
+
+  return null;
+}
+
+function lookupRegion(prefix) {
+  // Try 3-letter, then 2-letter, then 1-letter
+  if (prefix.length >= 3 && POWIATS[prefix.substring(0, 3)])
+    return { ...POWIATS[prefix.substring(0, 3)], matchedPrefix: prefix.substring(0, 3) };
+  if (prefix.length >= 2 && CITIES[prefix.substring(0, 2)])
+    return { ...CITIES[prefix.substring(0, 2)], matchedPrefix: prefix.substring(0, 2) };
+  if (VOIVODESHIPS[prefix[0]])
+    return { ...VOIVODESHIPS[prefix[0]], matchedPrefix: prefix[0], name: VOIVODESHIPS[prefix[0]].capital || VOIVODESHIPS[prefix[0]].name };
+
+  return null;
+}
+
+// ── Coat of Arms ──
+
+function generatePlaceholderCoA(letter, color) {
+  return `<svg viewBox="0 0 40 50" xmlns="http://www.w3.org/2000/svg">
+    <path d="M2 2 L38 2 L38 32 Q38 48 20 48 Q2 48 2 32 Z"
+          fill="${color}" stroke="#333" stroke-width="1.5"/>
+    <text x="20" y="33" text-anchor="middle" fill="white"
+          font-size="22" font-weight="bold" font-family="serif">${letter}</text>
+  </svg>`;
+}
+
+function renderCoA(region) {
+  if (region && region.coaFile) {
+    return `<img src="${region.coaFile}" alt="Herb">`;
+  }
+  const letter = region ? region.name[0] : '?';
+  const color = region ? region.color : '#999';
+  return generatePlaceholderCoA(letter, color);
+}
+
+// ── EU Stars ──
+
+function initEuStars() {
+  const svg = document.getElementById('euStars');
+  // 12 stars in a circle, centered at (20,20), radius 13
+  // Each star outer radius 2.5, inner 1.0
+  let stars = '';
+  for (let i = 0; i < 12; i++) {
+    const angle = (i * 30 - 90) * Math.PI / 180;
+    const cx = 20 + 13 * Math.cos(angle);
+    const cy = 20 + 13 * Math.sin(angle);
+    stars += starSVG(cx, cy, 2.5, 1.0);
+  }
+  svg.innerHTML = stars;
+}
+
+function starSVG(cx, cy, outerR, innerR) {
+  let points = [];
+  for (let i = 0; i < 10; i++) {
+    const r = i % 2 === 0 ? outerR : innerR;
+    const angle = (i * 36 - 90) * Math.PI / 180;
+    points.push(`${cx + r * Math.cos(angle)},${cy + r * Math.sin(angle)}`);
+  }
+  return `<polygon points="${points.join(' ')}" fill="#fc0"/>`;
+}
+
+// ── Rendering ──
+
+function updatePlate() {
+  const input = document.getElementById('plateInput').value;
+  const plate = document.getElementById('platePreview');
+  const prefixEl = document.getElementById('platePrefix');
+  const serialEl = document.getElementById('plateSerial');
+  const coaEl = document.getElementById('plateCoa');
+  const regionEl = document.getElementById('plateRegion');
+  const infoEl = document.getElementById('regionInfo');
+
+  const parsed = parsePlate(input);
+
+  if (!parsed) {
+    plate.classList.add('invalid');
+    prefixEl.textContent = '??';
+    serialEl.textContent = '?????';
+    coaEl.innerHTML = generatePlaceholderCoA('?', '#999');
+    regionEl.textContent = '';
+    infoEl.innerHTML = input.trim() ? '<span style="color:#e74c3c">Nieprawidłowy format tablicy</span>' : 'Wpisz numer tablicy rejestracyjnej';
+    return;
+  }
+
+  plate.classList.remove('invalid');
+  const region = lookupRegion(parsed.prefix);
+
+  prefixEl.textContent = parsed.prefix;
+  serialEl.textContent = parsed.serial;
+  coaEl.innerHTML = renderCoA(region);
+
+  if (region) {
+    regionEl.textContent = region.name;
+    const voi = region.voivodeship || region.name;
+    infoEl.innerHTML = `<strong>${region.name}</strong> — woj. ${voi}`;
+  } else {
+    regionEl.textContent = 'Nieznany region';
+    infoEl.innerHTML = `Prefiks <strong>${parsed.prefix}</strong> — region nierozpoznany`;
+  }
+}
+
+// ── Init ──
+
+document.addEventListener('DOMContentLoaded', () => {
+  initEuStars();
+
+  const input = document.getElementById('plateInput');
+  input.addEventListener('input', updatePlate);
+
+  // Show example plate
+  input.value = 'WA 6642E';
+  updatePlate();
+});
+</script>
+</body>
+</html>

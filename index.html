@@ -4,6 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Tablice Rejestracyjne PL — Generator</title>
+<link rel="preload" href="fonts/arklatrs.ttf" as="font" type="font/ttf" crossorigin>
 <style>
 @font-face {
   font-family: 'Arklatrs';
@@ -119,14 +120,17 @@ h1 {
   text-shadow: 0 1px 2px rgba(0,0,0,0.3);
 }
 
-/* ── Main plate content area (right of euroband) ── */
+/* ── Main plate content area (right of euroband) ──
+   EU spec: 11mm margins all sides, 33mm group gap.
+   Available width: 520 - 50 (euroband) - 11 - 11 (margins) = 448mm
+   COA column acts as the 33mm group separator. ── */
 .plate-content {
   flex: 1;
   display: flex;
   flex-direction: column;
   justify-content: center;
   align-items: center;
-  padding: 2px 8px 0 8px;
+  padding: 0 11px;
   min-width: 0;
 }
 
@@ -135,38 +139,42 @@ h1 {
   align-items: center;
   width: 100%;
   justify-content: center;
-  height: 82px;
+  height: 88px;
 }
 
-/* ── Characters: 75mm tall on real plate.
-   Font cap-height ≈ 70% of font-size, so font-size ~107px
-   would give 75px caps. But we need room for region name.
-   Use 80px which gives ~56px caps + region text fits. ── */
+/* ── Characters: sized to fill plate height.
+   Arklatrs cap-height ~80% of font-size.
+   Target ~75px visible height → font-size ~80px.
+   But region name needs ~14px below, so max ~74px font. ── */
 .plate-prefix,
 .plate-serial {
   font-family: var(--plate-font);
-  font-size: 76px;
+  font-size: 74px;
   font-weight: 400;
   color: #111;
-  line-height: 0.9;
-  letter-spacing: 3px;
+  line-height: 0.85;
+  letter-spacing: 2px;
   white-space: nowrap;
+  flex-shrink: 1;
+  min-width: 0;
 }
 
-/* ── Coat of arms column: national eagle on top, regional COA below ── */
+/* ── Coat of arms column: 33mm wide (EU group gap spec).
+   National eagle on top, regional COA below. ── */
 .plate-coa-wrapper {
   display: flex;
   flex-direction: column;
   align-items: center;
-  margin: 0 6px;
+  width: 33px;
+  min-width: 33px;
   flex-shrink: 0;
   align-self: center;
-  gap: 2px;
+  gap: 1px;
 }
 
 .plate-coa-national {
-  width: 32px;
-  height: 32px;
+  width: 26px;
+  height: 28px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -180,8 +188,8 @@ h1 {
 }
 
 .plate-coa {
-  width: 30px;
-  height: 34px;
+  width: 28px;
+  height: 32px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -196,11 +204,11 @@ h1 {
 
 /* ── Region name below characters ── */
 .plate-region {
-  font-size: 10px;
+  font-size: 9px;
   color: #333;
   font-family: Arial, Helvetica, sans-serif;
-  margin-top: 0;
-  letter-spacing: 0.5px;
+  margin-top: 1px;
+  letter-spacing: 0.3px;
   font-weight: 500;
   line-height: 1;
 }
@@ -414,8 +422,10 @@ function lookupRegion(prefix) {
     return { ...POWIATS[prefix.substring(0, 3)], matchedPrefix: prefix.substring(0, 3) };
   if (prefix.length >= 2 && CITIES[prefix.substring(0, 2)])
     return { ...CITIES[prefix.substring(0, 2)], matchedPrefix: prefix.substring(0, 2) };
-  if (VOIVODESHIPS[prefix[0]])
-    return { ...VOIVODESHIPS[prefix[0]], matchedPrefix: prefix[0], name: VOIVODESHIPS[prefix[0]].capital || VOIVODESHIPS[prefix[0]].name };
+  if (VOIVODESHIPS[prefix[0]]) {
+    const v = VOIVODESHIPS[prefix[0]];
+    return { ...v, matchedPrefix: prefix[0], name: v.capital || v.name, voivodeship: v.name };
+  }
 
   return null;
 }
@@ -495,6 +505,12 @@ function updatePlate() {
   prefixEl.textContent = parsed.prefix;
   serialEl.textContent = parsed.serial;
   coaEl.innerHTML = renderCoA(region);
+
+  // Dynamic font size: scale down for longer plates
+  const totalChars = parsed.prefix.length + parsed.serial.length;
+  const fontSize = totalChars <= 6 ? 74 : totalChars === 7 ? 70 : 62;
+  prefixEl.style.fontSize = fontSize + 'px';
+  serialEl.style.fontSize = fontSize + 'px';
 
   if (region) {
     regionEl.textContent = region.name;
